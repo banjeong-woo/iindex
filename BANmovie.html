@@ -1,0 +1,614 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>🍿 BANFLIX</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;700&family=Bebas+Neue&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #141414;
+    --surface: #1f1f1f;
+    --card: #2a2a2a;
+    --border: #333;
+    --accent: #e50914;
+    --accent2: #f5a623;
+    --text: #fff;
+    --muted: #888;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Noto Sans KR', sans-serif;
+    min-height: 100vh;
+    padding: 48px 20px 80px;
+  }
+  .wrap { max-width: 660px; margin: 0 auto; }
+
+  header { margin-bottom: 32px; }
+  header .eyebrow { font-size: 11px; letter-spacing: 4px; text-transform: uppercase; color: var(--accent); margin-bottom: 10px; }
+  header h1 { font-family: 'Bebas Neue', sans-serif; font-size: clamp(2.8rem, 8vw, 4.5rem); line-height: 1; color: var(--text); letter-spacing: 2px; }
+  header p { color: var(--muted); margin-top: 10px; font-size: 14px; }
+
+  /* 검색 */
+  .search-wrap { position: relative; margin-bottom: 28px; }
+  .search-icon { position: absolute; left: 14px; top: 50%; transform: translateY(-50%); color: var(--muted); font-size: 16px; pointer-events: none; }
+  #search-input {
+    width: 100%; padding: 13px 16px 13px 42px;
+    background: var(--card); border: 1px solid var(--border);
+    border-radius: 4px; color: var(--text);
+    font-family: 'Noto Sans KR', sans-serif; font-size: 14px;
+    outline: none; transition: border-color .15s;
+  }
+  #search-input::placeholder { color: var(--muted); }
+  #search-input:focus { border-color: #fff; }
+  .clear-btn {
+    position: absolute; right: 12px; top: 50%; transform: translateY(-50%);
+    background: none; border: none; color: var(--muted);
+    font-size: 18px; cursor: pointer; line-height: 1; display: none; padding: 4px;
+  }
+  .clear-btn:hover { color: #fff; }
+  #search-results { margin-bottom: 20px; }
+  .search-results-title { font-family: 'Bebas Neue', sans-serif; font-size: 22px; letter-spacing: 2px; margin-bottom: 16px; color: var(--accent2); }
+  .highlight { background: var(--accent2); color: #141414; border-radius: 2px; padding: 0 2px; }
+
+  /* 탭 */
+  .tab-nav { display: flex; border-bottom: 1px solid var(--border); margin-bottom: 32px; }
+  .tab-btn {
+    background: none; border: none; color: var(--muted);
+    font-family: 'Noto Sans KR', sans-serif; font-size: 14px; font-weight: 700;
+    padding: 10px 18px 12px; cursor: pointer;
+    border-bottom: 3px solid transparent; margin-bottom: -1px;
+    transition: all .15s; letter-spacing: .5px;
+  }
+  .tab-btn:hover { color: #fff; }
+  .tab-btn.active { color: #fff; border-bottom-color: var(--accent); }
+  .tab-panel { display: none; }
+  .tab-panel.active { display: block; }
+
+  /* 추천 탭 */
+  .step { margin-bottom: 32px; }
+  .step-label { font-size: 10px; letter-spacing: 3px; text-transform: uppercase; color: var(--muted); margin-bottom: 10px; }
+  .step-title { font-size: 15px; margin-bottom: 14px; font-weight: 700; }
+  .chips { display: flex; flex-wrap: wrap; gap: 8px; }
+  .chip {
+    padding: 7px 16px; border-radius: 4px;
+    border: 1px solid var(--border); background: var(--card);
+    color: var(--muted); font-family: 'Noto Sans KR', sans-serif;
+    font-size: 13px; cursor: pointer; transition: all .15s; user-select: none;
+  }
+  .chip:hover { border-color: #fff; color: #fff; }
+  .chip.active { background: var(--accent); border-color: var(--accent); color: #fff; font-weight: 700; }
+  .chip.mood.active { background: var(--accent2); border-color: var(--accent2); color: #141414; font-weight: 700; }
+  .divider { height: 1px; background: var(--border); margin: 4px 0 32px; }
+  .btn {
+    width: 100%; padding: 15px;
+    background: var(--accent); color: #fff;
+    font-family: 'Bebas Neue', sans-serif; font-size: 20px; letter-spacing: 2px;
+    border: none; border-radius: 4px; cursor: pointer; transition: opacity .2s, transform .1s;
+  }
+  .btn:hover { opacity: .85; }
+  .btn:active { transform: scale(.98); }
+  #results { margin-top: 48px; }
+  .results-title {
+    font-family: 'Bebas Neue', sans-serif; font-size: 26px; letter-spacing: 2px;
+    margin-bottom: 20px; border-bottom: 2px solid var(--accent); padding-bottom: 10px;
+  }
+
+  /* 영화카드 */
+  .movie-card {
+    background: var(--card); border: 1px solid var(--border);
+    border-radius: 6px; margin-bottom: 14px;
+    opacity: 0; transform: translateY(10px);
+    animation: fadeUp .35s forwards;
+    display: flex; overflow: hidden;
+  }
+  .movie-card:nth-child(2) { animation-delay: .08s; }
+  .movie-card:nth-child(3) { animation-delay: .16s; }
+  .movie-card:nth-child(4) { animation-delay: .24s; }
+  @keyframes fadeUp { to { opacity: 1; transform: translateY(0); } }
+
+  .movie-thumb {
+    width: 80px; min-width: 80px;
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 11px; letter-spacing: 1px;
+    color: rgba(255,255,255,0.7);
+    gap: 6px; padding: 10px 6px;
+    text-align: center;
+  }
+  .movie-thumb .thumb-icon { font-size: 28px; }
+
+  .movie-body { flex: 1; padding: 18px 18px 16px; border-left: 3px solid var(--accent); min-width: 0; }
+  .movie-num { font-size: 10px; letter-spacing: 2px; color: var(--accent); margin-bottom: 5px; }
+  .movie-title { font-family: 'Bebas Neue', sans-serif; font-size: 22px; letter-spacing: 1px; margin-bottom: 4px; }
+  .movie-meta { font-size: 12px; color: var(--muted); margin-bottom: 10px; }
+  .movie-desc { font-size: 13px; line-height: 1.7; color: #bbb; }
+  .movie-platform { display: inline-block; margin-top: 10px; font-size: 11px; padding: 3px 10px; border-radius: 3px; background: #e50914; color: #fff; font-weight: 700; letter-spacing: 1px; }
+  .movie-platform.wavve { background: #00b4d8; }
+  .movie-platform.disney { background: #113ccf; }
+  .movie-platform.etc { background: #555; }
+  .empty { text-align: center; padding: 48px 0; color: var(--muted); font-size: 15px; }
+
+  /* 흥행 탭 */
+  .trend-section { margin-bottom: 44px; }
+  .trend-section-header { display: flex; align-items: center; gap: 10px; margin-bottom: 16px; }
+  .trend-section-title { font-family: 'Bebas Neue', sans-serif; font-size: 20px; letter-spacing: 2px; }
+  .trend-badge { font-size: 10px; padding: 3px 8px; border-radius: 3px; font-weight: 700; letter-spacing: 1px; }
+  .trend-badge.kobis { background: #2563eb; color: #fff; }
+  .trend-badge.netflix-badge { background: var(--accent); color: #fff; }
+  .rank-list { display: flex; flex-direction: column; gap: 8px; }
+  .rank-item {
+    display: flex; align-items: center; gap: 14px;
+    background: var(--card); border: 1px solid var(--border);
+    border-radius: 6px; padding: 14px 18px; transition: border-color .15s;
+  }
+  .rank-item:hover { border-color: #555; }
+  .rank-num { font-family: 'Bebas Neue', sans-serif; font-size: 26px; line-height: 1; min-width: 36px; text-align: center; color: var(--muted); }
+  .rank-num.top3 { color: var(--accent2); }
+  .rank-info { flex: 1; min-width: 0; }
+  .rank-title { font-size: 15px; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-bottom: 3px; }
+  .rank-meta { font-size: 12px; color: var(--muted); }
+  .rank-stat { font-size: 12px; color: var(--accent2); font-weight: 700; white-space: nowrap; text-align: right; }
+  .rank-type { font-size: 10px; padding: 2px 7px; border-radius: 3px; font-weight: 700; letter-spacing: .5px; background: #333; color: var(--muted); margin-top: 5px; display: inline-block; }
+  .rank-type.drama { background: #1a3a2a; color: #4ade80; }
+  .rank-type.movie { background: #1a1a3a; color: #818cf8; }
+  .trend-note { font-size: 11px; color: var(--muted); margin-top: 10px; padding-left: 4px; }
+
+  /* 상세 모달 */
+  .detail-overlay {
+    display: none;
+    position: fixed; inset: 0; z-index: 100;
+    background: rgba(0,0,0,0.8);
+    align-items: flex-end;
+    justify-content: center;
+  }
+  .detail-overlay.open { display: flex; }
+  .detail-sheet {
+    background: #1c1c1c;
+    border-radius: 16px 16px 0 0;
+    width: 100%; max-width: 660px;
+    max-height: 88vh;
+    overflow-y: auto;
+    transform: translateY(100%);
+    transition: transform .3s cubic-bezier(.32,.72,0,1);
+    padding-bottom: 40px;
+  }
+  .detail-overlay.open .detail-sheet { transform: translateY(0); }
+  .detail-hero {
+    height: 180px;
+    display: flex; align-items: center; justify-content: center;
+    flex-direction: column; gap: 10px;
+    font-family: 'Bebas Neue', sans-serif;
+    position: relative;
+  }
+  .detail-hero-icon { font-size: 56px; }
+  .detail-hero-genre { font-size: 13px; letter-spacing: 3px; color: rgba(255,255,255,0.6); }
+  .detail-close {
+    position: absolute; top: 16px; right: 18px;
+    background: rgba(255,255,255,0.12); border: none;
+    color: #fff; font-size: 18px; width: 34px; height: 34px;
+    border-radius: 50%; cursor: pointer; display: flex;
+    align-items: center; justify-content: center;
+  }
+  .detail-close:hover { background: rgba(255,255,255,0.22); }
+  .detail-body { padding: 24px 24px 0; }
+  .detail-title { font-family: 'Bebas Neue', sans-serif; font-size: 32px; letter-spacing: 2px; margin-bottom: 6px; }
+  .detail-meta { font-size: 13px; color: var(--muted); margin-bottom: 18px; display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
+  .detail-meta span { display: flex; align-items: center; gap: 4px; }
+  .detail-desc { font-size: 14px; line-height: 1.8; color: #ccc; margin-bottom: 24px; }
+  .detail-tags { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 24px; }
+  .detail-tag { padding: 5px 12px; border-radius: 4px; border: 1px solid var(--border); font-size: 12px; color: var(--muted); }
+  .detail-actions { display: flex; gap: 10px; }
+  .detail-btn-main {
+    flex: 1; padding: 13px;
+    background: var(--accent); color: #fff;
+    font-family: 'Bebas Neue', sans-serif; font-size: 18px; letter-spacing: 2px;
+    border: none; border-radius: 6px; cursor: pointer;
+  }
+  .detail-btn-main:hover { opacity: .85; }
+  .movie-card { cursor: pointer; transition: border-color .15s, transform .1s; }
+  .movie-card:hover { border-color: #555; transform: translateX(3px); }
+  .rank-item { cursor: pointer; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1 style="color: var(--accent); letter-spacing: 4px;">BANFLIX</h1>
+    <p style="margin-top:6px; font-size:13px; color: var(--muted);">오늘 밤 기분에 맞는 작품을 골라드릴게요</p>
+  </header>
+
+  <!-- 검색 -->
+  <div class="search-wrap">
+    <span class="search-icon">🔍</span>
+    <input type="text" id="search-input" placeholder="제목, 장르, 설명으로 검색..." oninput="onSearch(this.value)" />
+    <button class="clear-btn" id="clear-btn" onclick="clearSearch()">✕</button>
+  </div>
+  <div id="search-results"></div>
+
+  <!-- 탭 + 패널 -->
+  <div id="main-ui">
+    <nav class="tab-nav">
+      <button class="tab-btn active" onclick="switchTab('recommend', this)">🎯 취향 추천</button>
+      <button class="tab-btn" onclick="switchTab('trending', this)">🔥 흥행 TOP 10</button>
+    </nav>
+
+    <!-- 취향 추천 탭 -->
+    <div id="tab-recommend" class="tab-panel active">
+      <div class="step">
+        <div class="step-label">Step 01</div>
+        <div class="step-title">장르를 선택하세요 (복수 선택 가능)</div>
+        <div class="chips" id="genre-chips">
+          <div class="chip" data-value="THRILLER">스릴러</div>
+          <div class="chip" data-value="SCIFI">SF</div>
+          <div class="chip" data-value="DRAMA">드라마</div>
+          <div class="chip" data-value="ACTION">액션</div>
+          <div class="chip" data-value="COMEDY">코미디</div>
+          <div class="chip" data-value="HORROR">공포</div>
+          <div class="chip" data-value="CRIME">범죄</div>
+          <div class="chip" data-value="ANIMATION">애니메이션</div>
+        </div>
+      </div>
+      <div class="divider"></div>
+      <div class="step">
+        <div class="step-label">Step 02</div>
+        <div class="step-title">지금 기분이 어때요?</div>
+        <div class="chips" id="mood-chips">
+          <div class="chip mood" data-value="BRAIN">🧠 생각하고 싶어</div>
+          <div class="chip mood" data-value="CHILL">😌 그냥 편하게</div>
+          <div class="chip mood" data-value="HEART">💥 짜릿하게</div>
+          <div class="chip mood" data-value="DARK">🌑 어둡고 진하게</div>
+          <div class="chip mood" data-value="FUN">😂 웃고 싶어</div>
+          <div class="chip mood" data-value="ANY">🎲 아무거나</div>
+        </div>
+      </div>
+      <div class="divider"></div>
+      <div class="step">
+        <div class="step-label">Step 03</div>
+        <div class="step-title">러닝타임</div>
+        <div class="chips" id="time-chips">
+          <div class="chip time" data-value="SHORT">~90분</div>
+          <div class="chip time" data-value="MEDIUM">90~120분</div>
+          <div class="chip time" data-value="LONG">120분+</div>
+          <div class="chip time active" data-value="ANY">상관없어</div>
+        </div>
+      </div>
+      <button class="btn" onclick="recommend()">🍿 오늘 밤 추천받기</button>
+      <div id="results"></div>
+    </div>
+
+    <!-- 흥행 TOP10 탭 -->
+    <div id="tab-trending" class="tab-panel">
+      <div class="trend-section">
+        <div class="trend-section-header">
+          <span class="trend-section-title">박스오피스</span>
+          <span class="trend-badge kobis">KOBIS 2026</span>
+        </div>
+        <div class="rank-list" id="kobis-list"></div>
+        <p class="trend-note">* 영화진흥위원회 2026년 연간 누적 관객 기준</p>
+      </div>
+      <div class="trend-section">
+        <div class="trend-section-header">
+          <span class="trend-section-title">넷플릭스 드라마 · 영화</span>
+          <span class="trend-badge netflix-badge">NETFLIX 2026</span>
+        </div>
+        <div class="rank-list" id="netflix-list"></div>
+        <p class="trend-note">* 2026년 상반기 국내외 화제작 기준</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+const MOVIES = [
+  { title:"오징어 게임", year:2021, genres:["THRILLER","DRAMA"], moods:["HEART","DARK"], runtime:"MEDIUM", desc:"456억을 건 데스게임. 넷플릭스 역대 1위 작품", platform:"netflix" },
+  { title:"기생충", year:2019, genres:["THRILLER","DRAMA","CRIME"], moods:["BRAIN","DARK"], runtime:"LONG", desc:"계급과 욕망이 충돌하는 봉준호 최고작. 아카데미 4관왕", platform:"wavve" },
+  { title:"인셉션", year:2010, genres:["SCIFI","ACTION","THRILLER"], moods:["BRAIN","HEART"], runtime:"LONG", desc:"꿈 속의 꿈. 다 보고 나서도 혼자 생각하게 되는 영화", platform:"netflix" },
+  { title:"올드보이", year:2003, genres:["THRILLER","CRIME","DRAMA"], moods:["DARK","BRAIN"], runtime:"MEDIUM", desc:"15년 감금 후 쫓기는 남자. 칸 황금종려상 수상", platform:"wavve" },
+  { title:"더 배트맨", year:2022, genres:["ACTION","CRIME","THRILLER"], moods:["DARK","HEART"], runtime:"LONG", desc:"가장 어둡고 현실적인 배트맨. 고담의 부패를 파헤친다", platform:"netflix" },
+  { title:"나이브스 아웃", year:2019, genres:["CRIME","COMEDY","THRILLER"], moods:["BRAIN","FUN"], runtime:"LONG", desc:"누가 살인자인지 처음부터 알면서도 끝까지 긴장되는 추리극", platform:"netflix" },
+  { title:"스파이더맨: 노 웨이 홈", year:2021, genres:["ACTION","SCIFI"], moods:["HEART","FUN"], runtime:"LONG", desc:"마블 팬이라면 소름 보장. 모든 스파이더맨이 한 자리에", platform:"disney" },
+  { title:"괴물", year:2006, genres:["ACTION","THRILLER","DRAMA"], moods:["HEART","BRAIN"], runtime:"MEDIUM", desc:"한강에 나타난 괴물과 맞서는 가족. 봉준호 장르 걸작", platform:"wavve" },
+  { title:"타짜", year:2006, genres:["CRIME","DRAMA"], moods:["CHILL","DARK"], runtime:"LONG", desc:"도박판의 세계. 최동훈 감독의 유쾌하고 긴장감 넘치는 범죄극", platform:"wavve" },
+  { title:"소셜 네트워크", year:2010, genres:["DRAMA","CRIME"], moods:["BRAIN","DARK"], runtime:"MEDIUM", desc:"페이스북 창업 뒤의 배신과 야망. 핀처 특유의 냉정한 시선", platform:"netflix" },
+  { title:"헤레디터리", year:2018, genres:["HORROR","THRILLER"], moods:["DARK"], runtime:"LONG", desc:"현대 공포영화의 걸작. 잠 못 자게 만드는 심리 공포", platform:"etc" },
+  { title:"극한직업", year:2019, genres:["COMEDY","ACTION","CRIME"], moods:["FUN","CHILL"], runtime:"MEDIUM", desc:"치킨집을 인수한 마약반 형사들. 국내 흥행 2위 코미디", platform:"wavve" },
+  { title:"베테랑", year:2015, genres:["ACTION","CRIME","COMEDY"], moods:["HEART","FUN"], runtime:"MEDIUM", desc:"황정민 vs 유아인. 통쾌한 한국 액션 수사물", platform:"wavve" },
+  { title:"인터스텔라", year:2014, genres:["SCIFI","DRAMA"], moods:["BRAIN","CHILL"], runtime:"LONG", desc:"우주와 시간, 그리고 사랑. 큰 화면 좋은 소리로 봐야 진가가 나오는 작품", platform:"netflix" },
+  { title:"머니볼", year:2011, genres:["DRAMA"], moods:["BRAIN","CHILL"], runtime:"LONG", desc:"통계로 야구를 바꾼 실화. 브래드 피트의 조용한 명연기", platform:"netflix" },
+  { title:"스즈메의 문단속", year:2022, genres:["ANIMATION","DRAMA"], moods:["CHILL","ANY"], runtime:"MEDIUM", desc:"신카이 마코토의 로드무비. 혼자 봐도 충분히 아름다운 애니", platform:"netflix" },
+  { title:"버드박스", year:2018, genres:["THRILLER","SCIFI","HORROR"], moods:["HEART","DARK"], runtime:"MEDIUM", desc:"보면 죽는 세상. 눈을 가리고 살아남는 서바이벌 스릴러", platform:"netflix" },
+  { title:"나이트크롤러", year:2014, genres:["THRILLER","CRIME","DRAMA"], moods:["DARK","BRAIN"], runtime:"MEDIUM", desc:"자극적인 영상을 팔아 성공하는 남자. 제이크 질렌할의 소름 끼치는 연기", platform:"etc" },
+  { title:"슬램덩크", year:2022, genres:["ANIMATION","DRAMA"], moods:["HEART","CHILL"], runtime:"SHORT", desc:"농구 안 좋아해도 눈물 난다. 극장판 애니의 완성형", platform:"netflix" },
+  { title:"컨테이젼", year:2011, genres:["THRILLER","DRAMA","SCIFI"], moods:["BRAIN","DARK"], runtime:"MEDIUM", desc:"팬데믹 실화급 리얼함. 혼자 보면서 소름 돋기 딱 좋음", platform:"wavve" },
+];
+
+const KOBIS_TOP10 = [
+  { rank:1, title:"왕과 사는 남자", year:2026, genre:"드라마·사극", stat:"1,680만 명", type:"movie" },
+  { rank:2, title:"살목지", year:2026, genre:"스릴러", stat:"283만 명", type:"movie" },
+  { rank:3, title:"프로젝트 헤일메리", year:2026, genre:"SF", stat:"271만 명", type:"movie" },
+  { rank:4, title:"만약에 우리", year:2026, genre:"로맨스·드라마", stat:"247만 명", type:"movie" },
+  { rank:5, title:"아바타: 불과 재", year:2025, genre:"SF·액션", stat:"217만 명", type:"movie" },
+  { rank:6, title:"휴민트", year:2026, genre:"액션·첩보", stat:"198만 명", type:"movie" },
+  { rank:7, title:"신의악단", year:2026, genre:"드라마", stat:"142만 명", type:"movie" },
+  { rank:8, title:"슈퍼 마리오 갤럭시", year:2026, genre:"애니·가족", stat:"111만 명", type:"movie" },
+  { rank:9, title:"악마는 프라다를 입는다 2", year:2026, genre:"코미디·드라마", stat:"96만 명", type:"movie" },
+  { rank:10, title:"주토피아 2", year:2025, genre:"애니·가족", stat:"91만 명", type:"movie" },
+];
+
+const NETFLIX_TOP10 = [
+  { rank:1, title:"오늘도 매진했습니다", year:2026, genre:"로맨스·드라마", stat:"글로벌 2위", type:"drama", desc:"SBS 방영 후 넷플릭스 글로벌 2위 등극" },
+  { rank:2, title:"월간남친", year:2026, genre:"로맨틱 코미디", stat:"글로벌 7위", type:"drama", desc:"블랙핑크 지수·서인국 주연, 52개국 TOP10" },
+  { rank:3, title:"대군부인", year:2026, genre:"사극·로맨스", stat:"73개국 제패", type:"drama", desc:"2026년 1위, 73개국 넷플릭스 점령" },
+  { rank:4, title:"신이랑", year:2026, genre:"판타지·드라마", stat:"6주 연속 TOP10", type:"drama", desc:"6주 연속 넷플릭스 TOP10 롱런" },
+  { rank:5, title:"공룡들", year:2026, genre:"드라마", stat:"TV쇼 1위", type:"drama", desc:"넷플릭스 TV쇼 부문 1위 기록" },
+  { rank:6, title:"브리저튼 시즌4", year:2026, genre:"로맨스·역사", stat:"글로벌 상위권", type:"drama", desc:"넷플릭스 글로벌 인기 시리즈" },
+  { rank:7, title:"블라디미르", year:2026, genre:"스릴러", stat:"TOP10 진입", type:"drama", desc:"국내외 화제의 스릴러" },
+  { rank:8, title:"나이트 에이전트 시즌3", year:2026, genre:"액션·스릴러", stat:"TOP10 5위", type:"drama", desc:"글로벌 히트 시리즈 3번째 시즌" },
+  { rank:9, title:"맨 끝줄 소년", year:2026, genre:"서스펜스·드라마", stat:"화제작", type:"drama", desc:"교수와 천재 학생의 집착 서스펜스" },
+  { rank:10, title:"동궁", year:2026, genre:"판타지·사극", stat:"기대작", type:"drama", desc:"저주에 빠진 동궁을 파헤치는 비주얼 판타지" },
+];
+
+const PLATFORM_LABEL = { netflix:"NETFLIX", wavve:"WAVVE", disney:"DISNEY+", etc:"기타 OTT" };
+const PLATFORM_CLASS = { netflix:"", wavve:"wavve", disney:"disney", etc:"etc" };
+const GENRE_KO = {THRILLER:'스릴러',SCIFI:'SF',DRAMA:'드라마',ACTION:'액션',COMEDY:'코미디',HORROR:'공포',CRIME:'범죄',ANIMATION:'애니'};
+
+const GENRE_THUMB = {
+  THRILLER: { icon:'🔪', bg:'#1a0a0a', label:'스릴러' },
+  SCIFI:    { icon:'🚀', bg:'#0a0d1a', label:'SF' },
+  DRAMA:    { icon:'🎭', bg:'#0d0a1a', label:'드라마' },
+  ACTION:   { icon:'💥', bg:'#1a0f00', label:'액션' },
+  COMEDY:   { icon:'😂', bg:'#0d1a00', label:'코미디' },
+  HORROR:   { icon:'👁️', bg:'#0a0a0a', label:'공포' },
+  CRIME:    { icon:'🕵️', bg:'#0a1210', label:'범죄' },
+  ANIMATION:{ icon:'✨', bg:'#001a1a', label:'애니' },
+};
+
+function getThumb(genres) {
+  const g = genres[0];
+  if (GENRE_THUMB[g]) return GENRE_THUMB[g];
+  const ko = g || '';
+  if (ko.includes('스릴러')) return GENRE_THUMB.THRILLER;
+  if (ko.includes('SF') || ko.includes('sf')) return GENRE_THUMB.SCIFI;
+  if (ko.includes('액션')) return GENRE_THUMB.ACTION;
+  if (ko.includes('공포') || ko.includes('호러')) return GENRE_THUMB.HORROR;
+  if (ko.includes('코미디') || ko.includes('로맨틱')) return GENRE_THUMB.COMEDY;
+  if (ko.includes('범죄')) return GENRE_THUMB.CRIME;
+  if (ko.includes('애니')) return GENRE_THUMB.ANIMATION;
+  if (ko.includes('드라마') || ko.includes('로맨스') || ko.includes('사극') || ko.includes('판타지')) return GENRE_THUMB.DRAMA;
+  return { icon:'🎬', bg:'#1a1a1a', label:'영화' };
+}
+
+function makeCard(m, i, query) {
+  const thumb = getThumb(m.genres);
+  const hl = (t) => query ? highlight(t, query) : t;
+  const genreStr = m.genres.map(g => GENRE_KO[g] || g).join(', ');
+  const trendBadge = m._isTrending
+    ? '<span style="display:inline-block;margin-top:10px;margin-left:6px;font-size:10px;padding:2px 7px;border-radius:3px;background:#f5a623;color:#141414;font-weight:700;">🔥 ' + m._stat + '</span>'
+    : '';
+  const encoded = encodeURIComponent(JSON.stringify(m));
+  return '<div class="movie-card" data-idx="' + i + '" data-movie="' + encoded + '">' +
+    '<div class="movie-thumb" style="background:' + thumb.bg + '">' +
+      '<span class="thumb-icon">' + thumb.icon + '</span>' +
+      '<span>' + thumb.label + '</span>' +
+    '</div>' +
+    '<div class="movie-body">' +
+      '<div class="movie-num">NO. ' + String(i+1).padStart(2,'0') + '</div>' +
+      '<div class="movie-title">' + hl(m.title) + '</div>' +
+      '<div class="movie-meta">' + m.year + ' · ' + hl(genreStr) + '</div>' +
+      '<div class="movie-desc">' + hl(m.desc) + '</div>' +
+      '<span class="movie-platform ' + (PLATFORM_CLASS[m.platform] || 'etc') + '">' + (PLATFORM_LABEL[m.platform] || '기타 OTT') + '</span>' +
+      trendBadge +
+    '</div>' +
+  '</div>';
+}
+
+// 탭 전환
+function switchTab(name, btn) {
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+  btn.classList.add('active');
+  document.getElementById('tab-' + name).classList.add('active');
+}
+
+// 흥행 순위 렌더
+function renderRankItem(item) {
+  const encoded = encodeURIComponent(JSON.stringify(item));
+  return '<div class="rank-item" data-movie="' + encoded + '">' +
+    '<div class="rank-num' + (item.rank <= 3 ? ' top3' : '') + '">' + item.rank + '</div>' +
+    '<div class="rank-info">' +
+      '<div class="rank-title">' + item.title + '</div>' +
+      '<div class="rank-meta">' + item.year + ' · ' + item.genre + (item.desc ? ' — ' + item.desc : '') + '</div>' +
+    '</div>' +
+    '<div style="display:flex;flex-direction:column;align-items:flex-end">' +
+      '<span class="rank-stat">' + item.stat + '</span>' +
+      '<span class="rank-type ' + item.type + '">' + (item.type === 'drama' ? '드라마' : '영화') + '</span>' +
+    '</div>' +
+  '</div>';
+}
+
+document.getElementById('kobis-list').innerHTML = KOBIS_TOP10.map(renderRankItem).join('');
+document.getElementById('netflix-list').innerHTML = NETFLIX_TOP10.map(renderRankItem).join('');
+
+// 칩 이벤트
+document.querySelectorAll('#genre-chips .chip').forEach(c => {
+  c.addEventListener('click', () => c.classList.toggle('active'));
+});
+document.querySelectorAll('#mood-chips .chip').forEach(c => {
+  c.addEventListener('click', () => {
+    document.querySelectorAll('#mood-chips .chip').forEach(x => x.classList.remove('active'));
+    c.classList.add('active');
+  });
+});
+document.querySelectorAll('#time-chips .chip').forEach(c => {
+  c.addEventListener('click', () => {
+    document.querySelectorAll('#time-chips .chip').forEach(x => x.classList.remove('active'));
+    c.classList.add('active');
+  });
+});
+
+// 추천
+function recommend() {
+  const selectedGenres = [...document.querySelectorAll('#genre-chips .chip.active')].map(c => c.dataset.value);
+  const moodEl = document.querySelector('#mood-chips .chip.active');
+  const selectedMood = moodEl ? moodEl.dataset.value : 'ANY';
+  const timeEl = document.querySelector('#time-chips .chip.active');
+  const selectedTime = timeEl ? timeEl.dataset.value : 'ANY';
+
+  let matched = MOVIES.filter(m => {
+    const genreOk = selectedGenres.length === 0 || m.genres.some(g => selectedGenres.includes(g));
+    const moodOk = selectedMood === 'ANY' || m.moods.includes('ANY') || m.moods.includes(selectedMood);
+    const timeOk = selectedTime === 'ANY' || m.runtime === selectedTime;
+    return genreOk && moodOk && timeOk;
+  });
+  matched = matched.sort(() => Math.random() - 0.5).slice(0, 4);
+
+  const el = document.getElementById('results');
+  if (matched.length === 0) {
+    el.innerHTML = '<div class="empty">조건에 맞는 작품이 없어요.<br>장르나 러닝타임 조건을 넓혀보세요.</div>';
+    return;
+  }
+  el.innerHTML = '<div class="results-title">🍿 오늘 밤 픽 ' + matched.length + '편</div>' +
+    matched.map((m, i) => makeCard(m, i, null)).join('');
+  el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+// 검색
+function highlight(text, query) {
+  if (!query) return text;
+  const escaped = query.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  return text.replace(new RegExp('(' + escaped + ')', 'gi'), '<span class="highlight">$1</span>');
+}
+
+function onSearch(query) {
+  const q = query.trim();
+  document.getElementById('clear-btn').style.display = q ? 'block' : 'none';
+  const searchResults = document.getElementById('search-results');
+  const mainUi = document.getElementById('main-ui');
+
+  if (!q) {
+    searchResults.innerHTML = '';
+    mainUi.style.display = '';
+    return;
+  }
+  mainUi.style.display = 'none';
+
+  const lower = q.toLowerCase();
+  const trendingAsMovies = [...KOBIS_TOP10, ...NETFLIX_TOP10].map(t => ({
+    title: t.title, year: t.year,
+    genres: t.genre.split('·').map(g => g.trim()),
+    desc: t.desc || t.genre,
+    platform: 'etc',
+    _isTrending: true, _stat: t.stat, _type: t.type
+  }));
+  const allMovies = [...MOVIES, ...trendingAsMovies];
+
+  const matched = allMovies.filter(m => {
+    const genreStr = Array.isArray(m.genres) ? m.genres.map(g => GENRE_KO[g] || g).join(' ') : '';
+    return m.title.toLowerCase().includes(lower) ||
+           m.desc.toLowerCase().includes(lower) ||
+           genreStr.toLowerCase().includes(lower) ||
+           String(m.year).includes(lower) ||
+           (PLATFORM_LABEL[m.platform] || '').toLowerCase().includes(lower);
+  });
+
+  if (matched.length === 0) {
+    searchResults.innerHTML = '<div class="empty">검색 결과가 없어요.<br><span style="font-size:12px">다른 키워드로 검색해보세요</span></div>';
+    return;
+  }
+  searchResults.innerHTML =
+    '<div class="search-results-title">🔍 "' + q + '" 검색 결과 ' + matched.length + '편</div>' +
+    matched.map((m, i) => makeCard(m, i, q)).join('');
+}
+
+function clearSearch() {
+  const input = document.getElementById('search-input');
+  input.value = '';
+  onSearch('');
+  input.focus();
+}
+
+// 상세 모달
+const PLATFORM_LABEL_FULL = { netflix:'NETFLIX에서 보기', wavve:'WAVVE에서 보기', disney:'DISNEY+에서 보기', etc:'OTT에서 보기' };
+const RUNTIME_LABEL = { SHORT:'90분 이하', MEDIUM:'90~120분', LONG:'120분 이상', ANY:'' };
+const MOOD_LABEL = { BRAIN:'🧠 생각하게 되는', CHILL:'😌 편안한', HEART:'💥 짜릿한', DARK:'🌑 어두운', FUN:'😂 유쾌한', ANY:'' };
+
+function openDetail(m) {
+  const thumb = getThumb(m.genres || [m.genre]);
+  document.getElementById('detail-icon').textContent = thumb.icon;
+  document.getElementById('detail-hero-genre').textContent = thumb.label;
+  document.getElementById('detail-hero').style.background = thumb.bg;
+  document.getElementById('detail-title').textContent = m.title;
+
+  const genreStr = m.genres
+    ? m.genres.map(g => GENRE_KO[g] || g).join(' · ')
+    : m.genre;
+  const runtimeStr = m.runtime && RUNTIME_LABEL[m.runtime] ? ' · ' + RUNTIME_LABEL[m.runtime] : '';
+  const statStr = m._stat ? ' · 🔥 ' + m._stat : (m.stat ? ' · 🔥 ' + m.stat : '');
+
+  document.getElementById('detail-meta').innerHTML =
+    '<span>📅 ' + m.year + '</span>' +
+    '<span>🎬 ' + genreStr + '</span>' +
+    (runtimeStr ? '<span>⏱ ' + RUNTIME_LABEL[m.runtime] + '</span>' : '') +
+    (statStr ? '<span>' + statStr.replace(' · ','') + '</span>' : '');
+
+  document.getElementById('detail-desc').textContent = m.desc || m.genre || '';
+
+  const tags = [];
+  if (m.moods) m.moods.forEach(md => { if (MOOD_LABEL[md]) tags.push(MOOD_LABEL[md]); });
+  if (m._type) tags.push(m._type === 'drama' ? '드라마' : '영화');
+  document.getElementById('detail-tags').innerHTML = tags.map(t =>
+    '<span class="detail-tag">' + t + '</span>'
+  ).join('');
+
+  const plt = m.platform || 'etc';
+  document.getElementById('detail-platform-btn').textContent = '▶ ' + (PLATFORM_LABEL_FULL[plt] || 'OTT에서 보기');
+
+  document.getElementById('detail-overlay').classList.add('open');
+  document.body.style.overflow = 'hidden';
+}
+
+function closeDetail(e) {
+  if (e.target === document.getElementById('detail-overlay')) closeDetailBtn();
+}
+function closeDetailBtn() {
+  document.getElementById('detail-overlay').classList.remove('open');
+  document.body.style.overflow = '';
+}
+
+// 카드/랭킹 클릭 이벤트 위임
+document.addEventListener('click', function(e) {
+  const card = e.target.closest('.movie-card');
+  const rank = e.target.closest('.rank-item');
+  if (card && card.dataset.idx !== undefined) {
+    openDetail(JSON.parse(decodeURIComponent(card.dataset.movie)));
+  } else if (rank && rank.dataset.movie) {
+    openDetail(JSON.parse(decodeURIComponent(rank.dataset.movie)));
+  }
+});
+</script>
+
+<!-- 상세 모달 -->
+<div class="detail-overlay" id="detail-overlay" onclick="closeDetail(event)">
+  <div class="detail-sheet" id="detail-sheet">
+    <div class="detail-hero" id="detail-hero">
+      <button class="detail-close" onclick="closeDetailBtn()">✕</button>
+      <span class="detail-hero-icon" id="detail-icon"></span>
+      <span class="detail-hero-genre" id="detail-hero-genre"></span>
+    </div>
+    <div class="detail-body">
+      <div class="detail-title" id="detail-title"></div>
+      <div class="detail-meta" id="detail-meta"></div>
+      <div class="detail-desc" id="detail-desc"></div>
+      <div class="detail-tags" id="detail-tags"></div>
+      <div class="detail-actions">
+        <button class="detail-btn-main" id="detail-platform-btn"></button>
+      </div>
+    </div>
+  </div>
+</div>
+</body>
+</html>
